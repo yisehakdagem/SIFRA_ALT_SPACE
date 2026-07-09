@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  UserID         String    @id @default(uuid())
+  FirstName      String
+  LastName       String
+  Email          String    @unique
+  Phone          String?
+  PasswordHash   String
+  Role           String    // Administrator, Manager, Customer
+  Address        String?
+  Status         String    @default("Active")
+  DateRegistered DateTime  @default(now())
+  CreatedAt      DateTime  @default(now())
+  UpdatedAt      DateTime  @updatedAt
+
+  Borrowings          Borrowing[]
+  EventRegistrations  EventRegistration[]
+  CreatedEvents       Event[]             @relation("EventCreator")
+  UpdatedSettings     SystemSetting[]
+  Wishlists           Wishlist[]
+  AuditLogs           AuditLog[]
+}
+
+model BookCategory {
+  CategoryID   String   @id @default(uuid())
+  CategoryName String
+  Description  String?
+  Books        Book[]
+}
+
+model Book {
+  BookID          String       @id @default(uuid())
+  ISBN            String?
+  Title           String
+  Author          String
+  CategoryID      String
+  PublicationYear Int?
+  Language        String?
+  Edition         String?
+  Description     String?
+  ShelfLocation   String?
+  CoverImage      String?
+  CreatedAt       DateTime     @default(now())
+  UpdatedAt       DateTime     @updatedAt
+
+  Category        BookCategory @relation(fields: [CategoryID], references: [CategoryID])
+  Copies          BookCopy[]
+  WishlistedBy    Wishlist[]
+}
+
+model BookCopy {
+  CopyID      String   @id @default(uuid())
+  BookID      String
+  Barcode     String   @unique
+  Condition   String?  @default("Good")
+  Status      String   @default("Available") // Available, Borrowed, Damaged, Lost
+  CreatedAt   DateTime @default(now())
+  UpdatedAt   DateTime @updatedAt
+
+  Book        Book     @relation(fields: [BookID], references: [BookID], onDelete: Cascade)
+  Borrowings  Borrowing[]
+}
+
+model Borrowing {
+  BorrowingID   String    @id @default(uuid())
+  CopyID        String
+  UserID        String
+  BorrowedAt    DateTime  @default(now())
+  ReturnedAt    DateTime?
+  AmountCharged Float?
+  Status        String    @default("Active") // Active, Returned
+  CreatedAt     DateTime  @default(now())
+
+  Copy          BookCopy  @relation(fields: [CopyID], references: [CopyID])
+  User          User      @relation(fields: [UserID], references: [UserID])
+}
+
+model Wishlist {
+  WishlistID  String   @id @default(uuid())
+  UserID      String
+  BookID      String
+  CreatedAt   DateTime @default(now())
+
+  User        User     @relation(fields: [UserID], references: [UserID], onDelete: Cascade)
+  Book        Book     @relation(fields: [BookID], references: [BookID], onDelete: Cascade)
+
+  @@unique([UserID, BookID])
+}
+
+model Product {
+  ProductID    String   @id @default(uuid())
+  ProductName  String
+  Description  String?
+  SellingPrice Float
+  CurrentStock Int      @default(0)
+  Status       String   @default("Available")
+  CreatedAt    DateTime @default(now())
+  UpdatedAt    DateTime @updatedAt
+
+  OrderItems    OrderItem[]
+  InventoryLogs InventoryLog[]
+}
+
+model Order {
+  OrderID     String   @id @default(uuid())
+  OrderName   String?
+  OrderDate   DateTime @default(now())
+  Status      String   @default("Completed")
+  Subtotal    Float
+  Discount    Float    @default(0)
+  TotalAmount Float
+  CreatedAt   DateTime @default(now())
+  UpdatedAt   DateTime @updatedAt
+
+  OrderItems  OrderItem[]
+  Payments    Payment[]
+}
+
+model OrderItem {
+  OrderItemID String  @id @default(uuid())
+  OrderID     String
+  ProductID   String
+  Quantity    Int
+  UnitPrice   Float
+  Subtotal    Float
+
+  Order       Order   @relation(fields: [OrderID], references: [OrderID], onDelete: Cascade)
+  Product     Product @relation(fields: [ProductID], references: [ProductID])
+}
+
+model Payment {
+  PaymentID            String   @id @default(uuid())
+  OrderID              String
+  PaymentMethod        String
+  Amount               Float
+  TransactionReference String?
+  PaymentStatus        String   @default("Paid")
+  PaymentDate          DateTime @default(now())
+  Notes                String?
+
+  Order                Order    @relation(fields: [OrderID], references: [OrderID], onDelete: Cascade)
+}
+
+model InventoryLog {
+  LogID          String   @id @default(uuid())
+  ProductID      String
+  QuantityChange Int
+  MovementType   String
+  ReferenceType  String?
+  ReferenceID    String?
+  Remarks        String?
+  RecordedAt     DateTime @default(now())
+
+  Product        Product  @relation(fields: [ProductID], references: [ProductID])
+}
+
+model Event {
+  EventID         String   @id @default(uuid())
+  Title           String
+  Description     String?
+  EventDate       DateTime
+  StartTime       String
+  EndTime         String
+  Price           Float    @default(0)
+  MaxParticipants Int      @default(0)
+  Status          String   @default("Upcoming")
+  CreatedAt       DateTime @default(now())
+  UpdatedAt       DateTime @updatedAt
+  CreatedByID     String
+
+  CreatedBy       User     @relation("EventCreator", fields: [CreatedByID], references: [UserID])
+  Registrations   EventRegistration[]
+}
+
+model EventRegistration {
+  RegistrationID   String   @id @default(uuid())
+  EventID          String
+  UserID           String
+  RegistrationDate DateTime @default(now())
+  Status           String   @default("Registered") // Registered, Cancelled, Attended
+  PaymentStatus    String   @default("Pending") // Pending, Paid
+
+  Event            Event    @relation(fields: [EventID], references: [EventID], onDelete: Cascade)
+  User             User     @relation(fields: [UserID], references: [UserID], onDelete: Cascade)
+
+  @@unique([EventID, UserID])
+}
+
+model SystemSetting {
+  SettingID    String   @id @default(uuid())
+  SettingKey   String   @unique
+  SettingValue String
+  Description  String?
+  UpdatedByID  String?
+  UpdatedAt    DateTime @updatedAt
+
+  UpdatedBy    User?    @relation(fields: [UpdatedByID], references: [UserID])
+}
+
+model AuditLog {
+  AuditID     String   @id @default(uuid())
+  UserID      String
+  Action      String
+  EntityName  String
+  EntityID    String?
+  Description String?
+  CreatedAt   DateTime @default(now())
+
+  User        User     @relation(fields: [UserID], references: [UserID], onDelete: Cascade)
+}
