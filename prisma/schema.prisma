@@ -96,18 +96,40 @@ model Wishlist {
   @@unique([UserID, BookID])
 }
 
-model Product {
-  ProductID    String   @id @default(uuid())
-  ProductName  String
+model MenuItem {
+  MenuItemID   String   @id @default(uuid())
+  Name         String
   Description  String?
-  SellingPrice Float
-  CurrentStock Int      @default(0)
-  Status       String   @default("Available")
+  Price        Float
+  Status       String   @default("Available") // Available, Unavailable
   CreatedAt    DateTime @default(now())
   UpdatedAt    DateTime @updatedAt
 
-  OrderItems    OrderItem[]
-  InventoryLogs InventoryLog[]
+  // Which inventory items this menu item uses
+  InventoryItems MenuItemInventory[]
+  OrderItems     OrderItem[]
+}
+
+model InventoryItem {
+  InventoryItemID String   @id @default(uuid())
+  Name            String
+  CurrentStock    Int      @default(0)
+  Unit            String? // e.g., "kg", "pieces", "bags"
+  CreatedAt       DateTime @default(now())
+  UpdatedAt       DateTime @updatedAt
+
+  MenuItems       MenuItemInventory[]
+  InventoryLogs   InventoryLog[]
+}
+
+model MenuItemInventory {
+  MenuItemInventoryID String @id @default(uuid())
+  MenuItemID          String
+  InventoryItemID     String
+  QuantityRequired    Int // How much of the inventory item is needed per menu item
+
+  MenuItem MenuItem @relation(fields: [MenuItemID], references: [MenuItemID], onDelete: Cascade)
+  InventoryItem InventoryItem @relation(fields: [InventoryItemID], references: [InventoryItemID])
 }
 
 model Order {
@@ -126,15 +148,15 @@ model Order {
 }
 
 model OrderItem {
-  OrderItemID String  @id @default(uuid())
+  OrderItemID String   @id @default(uuid())
   OrderID     String
-  ProductID   String
+  MenuItemID  String
   Quantity    Int
   UnitPrice   Float
   Subtotal    Float
 
-  Order       Order   @relation(fields: [OrderID], references: [OrderID], onDelete: Cascade)
-  Product     Product @relation(fields: [ProductID], references: [ProductID])
+  Order       Order    @relation(fields: [OrderID], references: [OrderID], onDelete: Cascade)
+  MenuItem    MenuItem @relation(fields: [MenuItemID], references: [MenuItemID])
 }
 
 model Payment {
@@ -151,16 +173,16 @@ model Payment {
 }
 
 model InventoryLog {
-  LogID          String   @id @default(uuid())
-  ProductID      String
-  QuantityChange Int
-  MovementType   String
-  ReferenceType  String?
-  ReferenceID    String?
-  Remarks        String?
-  RecordedAt     DateTime @default(now())
+  LogID           String        @id @default(uuid())
+  InventoryItemID String
+  QuantityChange  Int
+  MovementType    String // e.g., "Sale", "Restock", "Waste"
+  ReferenceType   String?
+  ReferenceID     String?
+  Remarks         String?
+  RecordedAt      DateTime      @default(now())
 
-  Product        Product  @relation(fields: [ProductID], references: [ProductID])
+  InventoryItem   InventoryItem @relation(fields: [InventoryItemID], references: [InventoryItemID])
 }
 
 model Event {
@@ -173,6 +195,7 @@ model Event {
   Price           Float    @default(0)
   MaxParticipants Int      @default(0)
   Status          String   @default("Upcoming")
+  Hidden          Boolean  @default(false)
   CreatedAt       DateTime @default(now())
   UpdatedAt       DateTime @updatedAt
   CreatedByID     String

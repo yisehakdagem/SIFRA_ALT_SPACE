@@ -1,15 +1,27 @@
+"use client";
+
 import Link from "next/link";
 import Logo from "./Logo";
-import { verifyJwt } from "@/lib/auth";
-import { cookies } from "next/headers";
 import MobileMenu from "./MobileMenu";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 
-export default async function Navbar() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-  let user: any = null;
-  if (token) {
-    user = await verifyJwt(token);
+export default function Navbar() {
+  const { user, loading, signOut } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  if (loading) {
+    return (
+      <header className="bg-olive/95 backdrop-blur-md text-white shadow-sm sticky top-0 z-50">
+        <nav className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <Logo className="h-10 text-gold" />
+            </div>
+          </div>
+        </nav>
+      </header>
+    );
   }
 
   return (
@@ -35,14 +47,48 @@ export default async function Navbar() {
             {/* Avatar / Login */}
             <div className="flex items-center space-x-4">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <Link 
-                    href={user.role === 'Administrator' ? '/admin' : user.role === 'Manager' ? '/manager' : '/customer'}
+                <div className="relative flex items-center space-x-4">
+                  {/* Profile Dropdown Toggle */}
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="w-10 h-10 rounded-full bg-gold flex items-center justify-center text-olive font-bold text-lg hover:ring-2 hover:ring-white transition-all shadow-sm"
                     title={`${user.name} (${user.role})`}
                   >
                     {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                  </Link>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {dropdownOpen && (
+                    <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg py-2 min-w-48 z-50">
+                      <Link
+                        href={
+                          user.role === 'Administrator' ? '/admin' :
+                          user.role === 'Manager' ? '/manager' : '/customer'
+                        }
+                        className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        href="/customer/profile"
+                        className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Profile
+                      </Link>
+                      <hr className="my-1" />
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          signOut();
+                        }}
+                        className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-3">

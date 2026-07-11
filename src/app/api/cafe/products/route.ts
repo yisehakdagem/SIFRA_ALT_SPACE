@@ -6,8 +6,22 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const products = await prisma.product.findMany();
-    return NextResponse.json(products);
+    const menuItems = await prisma.menuItem.findMany({
+      include: {
+        InventoryItems: {
+          include: { InventoryItem: true }
+        }
+      }
+    });
+    // Return in a compatible format for existing code temporarily
+    return NextResponse.json(menuItems.map(item => ({
+      ProductID: item.MenuItemID,
+      ProductName: item.Name,
+      Description: item.Description,
+      SellingPrice: item.Price,
+      Status: item.Status,
+      InventoryItems: item.InventoryItems
+    })));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -16,15 +30,15 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const product = await prisma.product.create({
+    const menuItem = await prisma.menuItem.create({
       data: {
-        ProductName: data.name,
+        Name: data.name,
         Description: data.description,
-        SellingPrice: parseFloat(data.price),
-        CurrentStock: parseInt(data.stock) || 0,
+        Price: parseFloat(data.price),
+        Status: data.status || "Available"
       }
     });
-    return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(menuItem, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

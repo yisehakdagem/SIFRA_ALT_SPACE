@@ -46,7 +46,8 @@ export default async function EventDetailsPage({ params, searchParams }: { param
     }
   });
 
-  if (!event) notFound();
+  const isStaff = user?.role === "Manager" || user?.role === "Administrator";
+  if (!event || (event.Hidden && !isStaff)) notFound();
 
 
 

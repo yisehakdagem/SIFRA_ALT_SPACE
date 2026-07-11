@@ -3,6 +3,7 @@ import Link from "next/link";
 
 export default async function EventsPage() {
   const events = await prisma.event.findMany({
+    where: { Hidden: false },
     orderBy: { EventDate: 'asc' }
   });
 

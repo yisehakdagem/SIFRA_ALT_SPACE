@@ -9,11 +9,23 @@ export async function GET() {
     const orders = await prisma.order.findMany({
       where: { Status: "Pending" },
       include: {
-        OrderItems: { include: { Product: true } }
+        OrderItems: { include: { MenuItem: true } }
       },
       orderBy: { OrderDate: 'asc' }
     });
-    return NextResponse.json(orders);
+    // Transform to match old format for compatibility
+    const transformedOrders = orders.map(order => ({
+      ...order,
+      OrderItems: order.OrderItems.map(item => ({
+        ...item,
+        Product: {
+          ProductID: item.MenuItem.MenuItemID,
+          ProductName: item.MenuItem.Name,
+          SellingPrice: item.MenuItem.Price
+        }
+      }))
+    }));
+    return NextResponse.json(transformedOrders);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -9,12 +9,24 @@ export async function GET() {
   try {
     const orders = await prisma.order.findMany({
       include: {
-        OrderItems: { include: { Product: true } },
+        OrderItems: { include: { MenuItem: true } },
         Payments: true,
       },
       orderBy: { OrderDate: 'desc' }
     });
-    return NextResponse.json(orders);
+    // Transform to match old format for compatibility
+    const transformedOrders = orders.map(order => ({
+      ...order,
+      OrderItems: order.OrderItems.map(item => ({
+        ...item,
+        Product: {
+          ProductID: item.MenuItem.MenuItemID,
+          ProductName: item.MenuItem.Name,
+          SellingPrice: item.MenuItem.Price
+        }
+      }))
+    }));
+    return NextResponse.json(transformedOrders);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -29,7 +41,7 @@ export async function POST(req: Request) {
 
     const { items, paymentMethod } = await req.json();
     
-    // items = [{ productId, quantity, unitPrice }]
+    // items = [{ productId (menuItemId), quantity, unitPrice }]
 
     let subtotal = 0;
     for (const item of items) {
@@ -48,7 +60,7 @@ export async function POST(req: Request) {
           Status: "Completed",
           OrderItems: {
             create: items.map((item: any) => ({
-              ProductID: item.productId,
+              MenuItemID: item.productId,
               Quantity: item.quantity,
               UnitPrice: item.unitPrice,
               Subtotal: item.quantity * item.unitPrice
@@ -61,26 +73,35 @@ export async function POST(req: Request) {
               PaymentStatus: "Paid"
             }]
           }
+        },
+        include: {
+          OrderItems: { include: { MenuItem: true } }
         }
       });
 
-      // 2. Update Inventory & create logs
-      for (const item of items) {
-        await tx.product.update({
-          where: { ProductID: item.productId },
-          data: { CurrentStock: { decrement: item.quantity } }
+      // 2. Update Inventory & create logs for each menu item's linked inventory items
+      for (const orderItem of order.OrderItems) {
+        const menuItem = orderItem.MenuItem;
+        const inventoryLinks = await tx.menuItemInventory.findMany({
+          where: { MenuItemID: menuItem.MenuItemID },
+          include: { InventoryItem: true }
         });
-
-        await tx.inventoryLog.create({
-          data: {
-            ProductID: item.productId,
-            QuantityChange: -item.quantity,
-            MovementType: "Sale",
-            ReferenceType: "Order",
-            ReferenceID: order.OrderID,
-            Remarks: "Café POS Sale"
-          }
-        });
+        for (const link of inventoryLinks) {
+          await tx.inventoryItem.update({
+            where: { InventoryItemID: link.InventoryItemID },
+            data: { CurrentStock: { decrement: link.QuantityRequired * orderItem.Quantity } }
+          });
+          await tx.inventoryLog.create({
+            data: {
+              InventoryItemID: link.InventoryItemID,
+              QuantityChange: -(link.QuantityRequired * orderItem.Quantity),
+              MovementType: "Sale",
+              ReferenceType: "Order",
+              ReferenceID: order.OrderID,
+              Remarks: `Sold ${orderItem.Quantity}x ${menuItem.Name}`
+            }
+          });
+        }
       }
 
       return order;

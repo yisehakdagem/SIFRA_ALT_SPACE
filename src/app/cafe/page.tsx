@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function CafeMenuPage() {
-  const products = await prisma.product.findMany({
-    orderBy: { ProductName: 'asc' }
+  const menuItems = await prisma.menuItem.findMany({
+    orderBy: { Name: 'asc' }
   });
 
   return (
@@ -13,19 +15,19 @@ export default async function CafeMenuPage() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {products.map((product) => (
-          <div key={product.ProductID} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-start">
+        {menuItems.map((item) => (
+          <div key={item.MenuItemID} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-start">
             <div>
-              <h3 className="text-xl font-bold text-gray-900">{product.ProductName}</h3>
-              <p className="text-gray-600 mt-1 text-sm">{product.Description}</p>
-              {product.CurrentStock <= 0 ? (
-                <span className="inline-block mt-2 text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded">Sold Out</span>
+              <h3 className="text-xl font-bold text-gray-900">{item.Name}</h3>
+              <p className="text-gray-600 mt-1 text-sm">{item.Description}</p>
+              {item.Status === "Unavailable" ? (
+                <span className="inline-block mt-2 text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded">Unavailable</span>
               ) : (
                 <span className="inline-block mt-2 text-xs font-semibold text-olive bg-olive/10 px-2 py-1 rounded">Available</span>
               )}
             </div>
             <div className="text-xl font-bold text-gold">
-              {product.SellingPrice} ETB
+              {item.Price} ETB
             </div>
           </div>
         ))}

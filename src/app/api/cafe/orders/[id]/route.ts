@@ -8,14 +8,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const orderId = id;
-    const { items } = await request.json(); // Array of { productId, quantity, unitPrice }
+    const { items } = await request.json(); // Array of { productId or menuItemId, quantity, unitPrice }
 
     let subtotal = 0;
     const orderItemsData = items.map((item: any) => {
       const itemTotal = item.quantity * item.unitPrice;
       subtotal += itemTotal;
       return {
-        ProductID: item.productId,
+        MenuItemID: item.menuItemId || item.productId,
         Quantity: item.quantity,
         UnitPrice: item.unitPrice,
         Subtotal: itemTotal
@@ -37,10 +37,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           }
         },
         include: {
-          OrderItems: { include: { Product: true } }
+          OrderItems: { include: { MenuItem: true } }
         }
       });
-      return updatedOrder;
+      
+      // Transform to match old format
+      const transformedOrder = {
+        ...updatedOrder,
+        OrderItems: updatedOrder.OrderItems.map(item => ({
+          ...item,
+          Product: {
+            ProductID: item.MenuItem.MenuItemID,
+            ProductName: item.MenuItem.Name,
+            SellingPrice: item.MenuItem.Price
+          }
+        }))
+      };
+      return transformedOrder;
     });
 
     return NextResponse.json(result);

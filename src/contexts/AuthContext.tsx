@@ -1,21 +1,26 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import type { User, Session } from "@supabase/supabase-js";
+
+type User = {
+  userId: string;
+  email: string;
+  role: string;
+  name: string;
+};
 
 type AuthContextType = {
   user: User | null;
-  session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
   signOut: async () => {},
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -26,35 +31,42 @@ export default function AuthProvider({
   children: React.ReactNode;
 }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Function to refresh user from /api/auth/me
+  const refreshUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    refreshUser();
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      // Optionally redirect
+      window.location.href = "/";
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

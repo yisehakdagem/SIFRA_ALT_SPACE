@@ -19,10 +19,11 @@ export default async function ManagerLayout({ children }: { children: React.Reac
         <nav className="space-y-4">
           <Link href="/manager" className="block hover:text-gold-light">Overview</Link>
           <Link href="/manager/pos" className="block hover:text-gold-light">Café POS</Link>
+          <Link href="/manager/menu-items" className="block hover:text-gold-light">Menu Items</Link>
+          <Link href="/manager/inventory" className="block hover:text-gold-light">Inventory</Link>
           <Link href="/manager/orders" className="block hover:text-gold-light">Orders History</Link>
           <Link href="/manager/books" className="block hover:text-gold-light">Library Books</Link>
           <Link href="/manager/borrowings" className="block hover:text-gold-light">Borrowings</Link>
-          <Link href="/manager/inventory" className="block hover:text-gold-light">Inventory</Link>
           <Link href="/manager/events" className="block hover:text-gold-light">Events</Link>
           <Link href="/manager/reports" className="block hover:text-gold-light">Reports</Link>
           <Link href="/" className="block mt-8 text-cream/70 hover:text-white">Back to Main</Link>

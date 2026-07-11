@@ -5,9 +5,13 @@ import { getUserFromRequest } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const user = await getUserFromRequest(req);
+    const isStaff = user?.role === "Manager" || user?.role === "Administrator";
+    
     const events = await prisma.event.findMany({
+      where: isStaff ? {} : { Hidden: false },
       include: {
         Registrations: true
       },

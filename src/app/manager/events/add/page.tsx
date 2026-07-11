@@ -7,7 +7,7 @@ import Modal from "@/components/Modal";
 export default function AddEventPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    title: "", description: "", date: "", startTime: "", endTime: "", maxParticipants: "", price: "0"
+    title: "", description: "", date: "", startTime: "", endTime: "", maxParticipants: "0", price: "0"
   });
   const [modalState, setModalState] = useState({ isOpen: false, message: "" });
   const closeModal = () => setModalState({ ...modalState, isOpen: false });
@@ -20,7 +20,10 @@ export default function AddEventPage() {
       body: JSON.stringify(formData)
     });
     if (res.ok) router.push("/manager/events");
-    else setModalState({ isOpen: true, message: "Error creating event" });
+    else {
+      const data = await res.json();
+      setModalState({ isOpen: true, message: data.error || "Error creating event" });
+    }
   };
 
   return (
@@ -29,20 +32,20 @@ export default function AddEventPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">Event Title</label>
-          <input required type="text" className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, title: e.target.value})} />
+          <input required type="text" value={formData.title} className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, title: e.target.value})} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Date</label>
-            <input required type="date" className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, date: e.target.value})} />
+            <input required type="date" value={formData.date} className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, date: e.target.value})} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Start Time</label>
-            <input required type="time" className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, startTime: e.target.value})} />
+            <input required type="time" value={formData.startTime} className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, startTime: e.target.value})} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">End Time</label>
-            <input required type="time" className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, endTime: e.target.value})} />
+            <input required type="time" value={formData.endTime} className="mt-1 w-full p-2 border rounded" onChange={e => setFormData({...formData, endTime: e.target.value})} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Maximum Participants (0 for unlimited)</label>
@@ -55,7 +58,7 @@ export default function AddEventPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea className="mt-1 w-full p-2 border rounded" rows={4} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+          <textarea value={formData.description} className="mt-1 w-full p-2 border rounded" rows={4} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
         </div>
         <div className="flex justify-end gap-4 mt-6">
           <button type="button" onClick={() => router.back()} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>

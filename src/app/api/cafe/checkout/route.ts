@@ -10,7 +10,19 @@ export async function POST(req: Request) {
 
     const order = await prisma.order.findUnique({
       where: { OrderID: orderId },
-      include: { OrderItems: true }
+      include: { 
+        OrderItems: { 
+          include: { 
+            MenuItem: { 
+              include: { 
+                InventoryItems: { 
+                  include: { InventoryItem: true } 
+                } 
+              } 
+            } 
+          } 
+        } 
+      }
     });
 
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -36,21 +48,25 @@ export async function POST(req: Request) {
 
       // 3. Deduct inventory and log
       for (const item of order.OrderItems) {
-        await tx.product.update({
-          where: { ProductID: item.ProductID },
-          data: { CurrentStock: { decrement: item.Quantity } }
-        });
+        const menuItem = item.MenuItem;
+        for (const invLink of menuItem.InventoryItems) {
+          const invItem = invLink.InventoryItem;
+          await tx.inventoryItem.update({
+            where: { InventoryItemID: invItem.InventoryItemID },
+            data: { CurrentStock: { decrement: invLink.QuantityRequired * item.Quantity } }
+          });
 
-        await tx.inventoryLog.create({
-          data: {
-            ProductID: item.ProductID,
-            QuantityChange: -item.Quantity,
-            MovementType: "Sale",
-            ReferenceType: "Order",
-            ReferenceID: orderId,
-            Remarks: "Café POS Sale"
-          }
-        });
+          await tx.inventoryLog.create({
+            data: {
+              InventoryItemID: invItem.InventoryItemID,
+              QuantityChange: -(invLink.QuantityRequired * item.Quantity),
+              MovementType: "Sale",
+              ReferenceType: "Order",
+              ReferenceID: orderId,
+              Remarks: `Sold ${item.Quantity}x ${menuItem.Name}`
+            }
+          });
+        }
       }
 
       return updatedOrder;

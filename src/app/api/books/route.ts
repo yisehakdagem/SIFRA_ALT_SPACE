@@ -45,6 +45,19 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
+
+    // Check for duplicate book with same Title AND Author
+    const existing = await prisma.book.findFirst({
+      where: {
+        Title: data.title,
+        Author: data.author,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json({ error: "A book with this title and author already exists" }, { status: 409 });
+    }
+
     const book = await prisma.book.create({
       data: {
         Title: data.title,

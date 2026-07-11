@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     const logs = await prisma.inventoryLog.findMany({
-      include: { Product: true },
+      include: { InventoryItem: true },
       orderBy: { RecordedAt: 'desc' }
     });
     return NextResponse.json(logs);
@@ -24,16 +24,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId, quantity, reason } = await req.json();
+    const { inventoryItemId, quantity, reason } = await req.json();
 
     const result = await prisma.$transaction([
-      prisma.product.update({
-        where: { ProductID: productId },
+      prisma.inventoryItem.update({
+        where: { InventoryItemID: inventoryItemId },
         data: { CurrentStock: { increment: quantity } }
       }),
       prisma.inventoryLog.create({
         data: {
-          ProductID: productId,
+          InventoryItemID: inventoryItemId,
           QuantityChange: quantity,
           MovementType: "Restock",
           Remarks: reason

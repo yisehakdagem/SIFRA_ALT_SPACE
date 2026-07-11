@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function StaffLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +28,7 @@ export default function StaffLoginPage() {
     }
 
     const data = await res.json();
+    await refreshUser();
     if (data.user.role === "Administrator") router.push("/admin");
     else if (data.user.role === "Manager") router.push("/manager");
     else router.push("/");

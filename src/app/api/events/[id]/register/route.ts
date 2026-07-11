@@ -34,27 +34,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (event.Price > 0) {
       const tx_ref = `TX-EVT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
+
+      const chapaPayload = {
+        amount: event.Price.toString(),
+        currency: "ETB",
+        email: (typeof user.email === "string" && !user.email.endsWith("@sifra.et")) ? user.email : "testcustomer@gmail.com",
+        first_name: user.name || "Customer",
+        last_name: "Sifra",
+        tx_ref: tx_ref,
+        return_url: `${returnUrl}?tx_ref=${tx_ref}`,
+        "customization[title]": `Registration for ${event.Title}`,
+        "customization[description]": event.Description || "Event registration payment",
+      };
+
+      console.log("Event registration Chapa payload:", chapaPayload);
+
       const response = await fetch("https://api.chapa.co/v1/transaction/initialize", {
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.CHAPA_SECRET_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: event.Price.toString(),
-          currency: "ETB",
-          email: (typeof user.email === "string" && !user.email.endsWith("@sifra.et")) ? user.email : "testcustomer@gmail.com",
-          first_name: user.name || "Customer",
-          last_name: "Sifra",
-          tx_ref: tx_ref,
-          return_url: `${returnUrl}?tx_ref=${tx_ref}`,
-          "customization[title]": `Registration for ${event.Title}`,
-        })
+        body: JSON.stringify(chapaPayload)
       });
 
       const result = await response.json();
+      console.log("Event registration Chapa response:", result);
+
       if (result.status === "success") {
         return NextResponse.json({ requiresPayment: true, checkout_url: result.data.checkout_url, tx_ref });
       } else {
-        return NextResponse.json({ error: "Payment gateway error" }, { status: 400 });
+        return NextResponse.json({ error: result.message || result.error || "Payment gateway error" }, { status: 400 });
       }
     } else {
       const registration = await prisma.eventRegistration.upsert({
@@ -65,6 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ requiresPayment: false, registration }, { status: 201 });
     }
   } catch (error: any) {
+    console.error("Event register error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
