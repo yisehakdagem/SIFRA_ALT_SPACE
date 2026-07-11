@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
+    const { id } = await params;
     const event = await prisma.event.findUnique({
-      where: { EventID: params.id },
+      where: { EventID: id },
       include: {
         Registrations: { include: { User: true } }
       }
@@ -18,16 +18,16 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
   }
 }
 
-export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    const user = await getUserFromRequest(req);
+    const { id } = await params;
+    const user = await getUserFromRequest(request);
     if (!user || (user.role !== "Manager" && user.role !== "Administrator")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const data = await req.json();
+    const data = await request.json();
     const event = await prisma.event.update({
-      where: { EventID: params.id },
+      where: { EventID: id },
       data: {
         Title: data.title,
         Description: data.description,
@@ -44,14 +44,14 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   }
 }
 
-export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    const user = await getUserFromRequest(req);
+    const { id } = await params;
+    const user = await getUserFromRequest(request);
     if (!user || (user.role !== "Manager" && user.role !== "Administrator")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    await prisma.event.delete({ where: { EventID: params.id } });
+    await prisma.event.delete({ where: { EventID: id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

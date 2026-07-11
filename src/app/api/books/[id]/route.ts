@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const book = await prisma.book.findUnique({
-      where: { BookID: params.id },
+      where: { BookID: id },
       include: { Category: true, Copies: true }
     });
     if (!book) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -14,11 +15,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const data = await req.json();
     const book = await prisma.book.update({
-      where: { BookID: params.id },
+      where: { BookID: id },
       data: {
         Title: data.title,
         Author: data.author,
@@ -38,9 +40,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await prisma.book.delete({ where: { BookID: params.id } });
+    const { id } = await params;
+    await prisma.book.delete({ where: { BookID: id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

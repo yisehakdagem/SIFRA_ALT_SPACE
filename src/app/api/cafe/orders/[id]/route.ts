@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    const orderId = params.id;
-    const { items } = await req.json(); // Array of { productId, quantity, unitPrice }
+    const { id } = await params;
+    const orderId = id;
+    const { items } = await request.json(); // Array of { productId, quantity, unitPrice }
 
     let subtotal = 0;
     const orderItemsData = items.map((item: any) => {
@@ -46,10 +46,10 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
   }
 }
 
-export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    await prisma.order.delete({ where: { OrderID: params.id } });
+    const { id } = await params;
+    await prisma.order.delete({ where: { OrderID: id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

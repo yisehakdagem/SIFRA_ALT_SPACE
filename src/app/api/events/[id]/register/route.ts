@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    const user = await getUserFromRequest(req);
+    const { id } = await params;
+    const user = await getUserFromRequest(request);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const eventId = params.id;
+    const eventId = id;
     const userId = user.userId as string;
-    const { returnUrl } = await req.json();
+    const { returnUrl } = await request.json();
 
     const event = await prisma.event.findUnique({
       where: { EventID: eventId },
@@ -38,7 +38,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         body: JSON.stringify({
           amount: event.Price.toString(),
           currency: "ETB",
-          email: (user.email && !user.email.endsWith("@sifra.et")) ? user.email : "testcustomer@gmail.com",
+          email: (typeof user.email === "string" && !user.email.endsWith("@sifra.et")) ? user.email : "testcustomer@gmail.com",
           first_name: user.name || "Customer",
           last_name: "Sifra",
           tx_ref: tx_ref,
@@ -66,13 +66,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   }
 }
 
-export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    const user = await getUserFromRequest(req);
+    const { id } = await params;
+    const user = await getUserFromRequest(request);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const eventId = params.id;
+    const eventId = id;
     const userId = user.userId as string;
 
     await prisma.eventRegistration.deleteMany({

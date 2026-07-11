@@ -1,15 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getUserFromRequest(req);
     if (!user || (user.role !== "Manager" && user.role !== "Administrator")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const borrowingId = params.id;
+    const { id } = await params;
+    const borrowingId = id;
     const borrowing = await prisma.borrowing.findUnique({ where: { BorrowingID: borrowingId } });
 
     if (!borrowing || borrowing.Status === "Returned") {

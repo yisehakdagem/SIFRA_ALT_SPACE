@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = await props.params;
-    const { amount } = await req.json();
+    const { id } = await params;
+    const { amount } = await request.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
@@ -12,13 +12,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
     const result = await prisma.$transaction(async (tx) => {
       const product = await tx.product.update({
-        where: { ProductID: params.id },
+        where: { ProductID: id },
         data: { CurrentStock: { increment: amount } }
       });
 
       await tx.inventoryLog.create({
         data: {
-          ProductID: params.id,
+          ProductID: id,
           QuantityChange: amount,
           MovementType: "Restock",
           Remarks: "Manual restock by Manager"
