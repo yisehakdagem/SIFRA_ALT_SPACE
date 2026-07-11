@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export async function POST(req: Request) {
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, phone, password, address } = await req.json();
+    const { firstName, lastName, email, phone, password, address } = await request.json();
 
     if (!firstName || !lastName || !email || !password) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

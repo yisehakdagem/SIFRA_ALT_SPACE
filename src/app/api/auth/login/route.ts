@@ -1,11 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { signJwt } from "@/lib/auth";
 
-export async function POST(req: Request) {
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, loginType } = await req.json();
+    const { email, password, loginType } = await request.json();
 
     const user = await prisma.user.findUnique({ where: { Email: email } });
     if (!user || user.Status !== "Active") {
