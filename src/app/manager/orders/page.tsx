@@ -3,13 +3,20 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function OrdersHistoryPage() {
-  const orders = await prisma.order.findMany({
-    include: {
-      OrderItems: { include: { MenuItem: true } },
-      Payments: true,
-    },
-    orderBy: { OrderDate: "desc" },
-  });
+  let orders: any[] = [];
+  try {
+
+    orders = await prisma.order.findMany({
+      include: {
+        OrderItems: { include: { MenuItem: true } },
+        Payments: true,
+      },
+      orderBy: { OrderDate: "desc" },
+    });
+  } catch (err) {
+    console.error("[Orders Page] DB error:", err);
+  }
+
 
   return (
     <div>
@@ -49,7 +56,7 @@ export default async function OrdersHistoryPage() {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {o.OrderItems.map(
-                    (i) => `${i.Quantity}x ${i.MenuItem.Name}`,
+                    (i: any) => `${i.Quantity}x ${i.MenuItem.Name}`,
                   ).join(", ")}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">

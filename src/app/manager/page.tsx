@@ -7,14 +7,22 @@ export default async function ManagerDashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [activeBorrowings, todayOrders, lowStockItems] = await Promise.all([
-    prisma.borrowing.count({ where: { Status: "Active" } }),
-    prisma.order.findMany({ where: { OrderDate: { gte: today } } }),
-    prisma.inventoryItem.count({ where: { CurrentStock: { lt: 20 } } }),
-  ]);
+  let activeBorrowings = 0;
+  let todayOrders: any[] = [];
+  let lowStockItems = 0;
+
+  try {
+    [activeBorrowings, todayOrders, lowStockItems] = await Promise.all([
+      prisma.borrowing.count({ where: { Status: "Active" } }),
+      prisma.order.findMany({ where: { OrderDate: { gte: today } } }),
+      prisma.inventoryItem.count({ where: { CurrentStock: { lt: 20 } } }),
+    ]);
+  } catch (err) {
+    console.error("[Manager Dashboard] DB error:", err);
+  }
 
   const todayRevenue = todayOrders.reduce(
-    (sum, order) => sum + order.TotalAmount,
+    (sum: number, order: any) => sum + order.TotalAmount,
     0,
   );
 
