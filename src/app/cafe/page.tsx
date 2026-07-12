@@ -1,57 +1,17 @@
-"use client";
+import { prisma } from "@/lib/prisma";
 
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
 
-interface MenuItem {
-  MenuItemID: string;
-  Name: string;
-  Description: string | null;
-  Price: number;
-  Status: string;
-}
-
-export default function CafeMenuPage() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/cafe/menu-items-public")
-      .then((r) => {
-        if (!r.ok) throw new Error(`Server error: ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setMenuItems(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-24 text-center text-gray-500">
-        Loading menu...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-24 text-center text-red-500">
-        Failed to load menu. Please try again later.
-      </div>
-    );
-  }
+export default async function CafeMenuPage() {
+  const menuItems = await prisma.menuItem.findMany({
+    orderBy: { Name: 'asc' }
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-serif font-bold text-olive mb-4">Café Menu</h1>
-        <p className="text-gray-600">Enjoy our selection of hand-crafted drinks and fresh pastries.</p>
+        <p className="text-gray-600">Enjoy drinks and snacks.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
